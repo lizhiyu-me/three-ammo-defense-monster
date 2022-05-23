@@ -1,0 +1,21 @@
+{
+  "name": "webgl-shooter",
+  "version": "1.0.0",
+  "description": "This is a simple 3D game developed with Typescript, ThreeJS and Ammo.js. You can navigate through the scene using WASD keys and shoot a cannon ball with a mouse click.",
+  "main": "app.js",
+  "scripts": {
+    "build":"tsc ./app.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hvidal/WebGL-Shooter.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hvidal/WebGL-Shooter/issues"
+  },
+  "homepage": "https://github.com/hvidal/WebGL-Shooter#readme"
+}
