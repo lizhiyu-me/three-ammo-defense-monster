@@ -68,10 +68,25 @@ var Engine = /** @class */ (function () {
             }
         }
     };
-    Engine.prototype.update = function (isPhysicsEnabled) {
+    Engine.prototype.update = function (controls, edgeZ) {
+        var len = this.rigidBodies.length;
+        for (var i = 0; i < len; i++) {
+            var objThree = this.rigidBodies[i];
+            if (objThree.position.z > edgeZ) {
+                controls.enabled = false;
+                var message = document.getElementById('message');
+                var blocker = document.getElementById('blocker');
+                var gameOver = document.getElementById('gameOver');
+                blocker.style.display = 'none';
+                message.style.display = 'none';
+                gameOver.style.display = 'block';
+                lockPointer(controls);
+                return;
+            }
+        }
         var deltaTime = this.clock.getDelta();
-        isPhysicsEnabled && this.updatePhysics(deltaTime);
-        // gameOverChecker.call(this.rigidBodies);
+        controls.enabled && this.updatePhysics(deltaTime);
+        // if(this.rigidBodies)gameOverChecker.call(this.rigidBodies);
         this.renderer.render(this.scene, this.camera);
         return deltaTime;
     };
@@ -183,16 +198,19 @@ var CameraMoveControls = /** @class */ (function () {
 function lockPointer(controls) {
     var message = document.getElementById('message');
     var blocker = document.getElementById('blocker');
+    var gameOver = document.getElementById('gameOver');
     var pointerlockerror = function (event) {
         document.addEventListener('keydown', function (event) {
             if (event.keyCode == 27) { // ESC
                 controls.enabled = false;
                 blocker.style.display = 'block';
                 message.style.display = 'none';
+                gameOver.style.display = 'none';
             }
         }, false);
         message.innerHTML = document.getElementById('errorMessage').innerHTML;
         blocker.style.display = 'none';
+        gameOver.style.display = 'none';
         message.style.display = 'block';
         controls.enabled = true;
     };
@@ -260,7 +278,7 @@ var MouseShooter = /** @class */ (function () {
         this.raycaster.setFromCamera(this.screenCenter, this.camera);
         this.pos.copy(this.raycaster.ray.direction);
         this.pos.add(this.raycaster.ray.origin);
-        this.pos.setZ(this.pos.z - 20);
+        this.pos.setZ(this.pos.z - 10);
         var ball = this.factory.createSphere(this.radius, this.mass, this.pos, this.quat, this.ballMaterial);
         ball.castShadow = true;
         ball.receiveShadow = true;
@@ -395,24 +413,22 @@ window.onload = function () {
             isMouseDowning = false;
         }, false);
         var edgeZ = Math.cos(groundRotationX) * groundScaleZ;
-        /* function checkIsBeyondEdge() {
-            return function (rigidBodies) {
-                const len = rigidBodies.length;
-                for (let i = 0; i < len; i++) {
-                    var objThree = this.rigidBodies[i];
-                    if (objThree.position.z > edgeZ) {
-                        controls.enabled = false;
-                        lockPointer(controls);
-                    }
-                }
-            }
-        } */
         // START THE ENGINE
+        var totalTime = 0;
         var duration = 0;
+        var beginTime = 0;
         function animate() {
+            if (beginTime == 0) {
+                beginTime = new Date().getTime();
+            }
+            else {
+                var _currentTime = new Date().getTime();
+                totalTime += (_currentTime - beginTime);
+                document.getElementById('scoreBar').innerHTML = Math.floor(totalTime / 1000) + "." + totalTime % 1000;
+                beginTime = _currentTime;
+            }
             requestAnimationFrame(animate);
-            // const deltaTime = engine.update(controls.enabled, checkIsBeyondEdge().bind(this));
-            var deltaTime = engine_1.update(controls_1.enabled);
+            var deltaTime = engine_1.update(controls_1, edgeZ);
             duration += deltaTime;
             controls_1.update(deltaTime);
             if (isMouseDowning && duration > 0.2) {

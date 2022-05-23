@@ -91,10 +91,27 @@ class Engine {
 		}
 	}
 
-	public update(isPhysicsEnabled: boolean): number {
+	public update(controls, edgeZ): number {
+
+		const len = this.rigidBodies.length;
+		for (let i = 0; i < len; i++) {
+			var objThree = this.rigidBodies[i];
+			if (objThree.position.z > edgeZ) {
+				controls.enabled = false;
+				const message = document.getElementById('message');
+				const blocker = document.getElementById('blocker');
+				const gameOver = document.getElementById('gameOver');
+				blocker.style.display = 'none';
+				message.style.display = 'none';
+				gameOver.style.display = 'block';
+				lockPointer(controls);
+				return;
+			}
+		}
+
 		const deltaTime = this.clock.getDelta();
-		isPhysicsEnabled && this.updatePhysics(deltaTime);
-		// gameOverChecker.call(this.rigidBodies);
+		controls.enabled && this.updatePhysics(deltaTime);
+		// if(this.rigidBodies)gameOverChecker.call(this.rigidBodies);
 		this.renderer.render(this.scene, this.camera);
 		return deltaTime;
 	}
@@ -233,16 +250,19 @@ class CameraMoveControls {
 function lockPointer(controls: CameraMoveControls) {
 	const message = document.getElementById('message');
 	const blocker = document.getElementById('blocker');
+	const gameOver = document.getElementById('gameOver');
 	const pointerlockerror = (event) => {
 		document.addEventListener('keydown', (event) => {
 			if (event.keyCode == 27) { // ESC
 				controls.enabled = false;
 				blocker.style.display = 'block';
 				message.style.display = 'none';
+				gameOver.style.display = 'none';
 			}
 		}, false);
 		message.innerHTML = document.getElementById('errorMessage').innerHTML;
 		blocker.style.display = 'none';
+		gameOver.style.display = 'none';
 		message.style.display = 'block';
 		controls.enabled = true;
 	};
@@ -318,7 +338,7 @@ class MouseShooter {
 
 		this.pos.copy(this.raycaster.ray.direction);
 		this.pos.add(this.raycaster.ray.origin);
-		this.pos.setZ(this.pos.z-20);
+		this.pos.setZ(this.pos.z - 10);
 
 		const ball = this.factory.createSphere(this.radius, this.mass, this.pos, this.quat, this.ballMaterial);
 		ball.castShadow = true;
@@ -468,24 +488,21 @@ window.onload = () => {
 		}, false);
 
 		var edgeZ = Math.cos(groundRotationX) * groundScaleZ;
-		/* function checkIsBeyondEdge() {
-			return function (rigidBodies) {
-				const len = rigidBodies.length;
-				for (let i = 0; i < len; i++) {
-					var objThree = this.rigidBodies[i];
-					if (objThree.position.z > edgeZ) {
-						controls.enabled = false;
-						lockPointer(controls);
-					}
-				}
-			}
-		} */
 		// START THE ENGINE
+		var totalTime = 0;
 		var duration = 0;
+		var beginTime = 0;
 		function animate() {
+			if (beginTime == 0) {
+				beginTime = new Date().getTime();
+			} else {
+				let _currentTime = new Date().getTime();
+				totalTime += (_currentTime-beginTime);
+				document.getElementById('scoreBar').innerHTML = Math.floor(totalTime / 1000) + "." + totalTime % 1000;
+				beginTime = _currentTime;
+			}
 			requestAnimationFrame(animate);
-			// const deltaTime = engine.update(controls.enabled, checkIsBeyondEdge().bind(this));
-			const deltaTime = engine.update(controls.enabled);
+			const deltaTime = engine.update(controls, edgeZ);
 			duration += deltaTime;
 			controls.update(deltaTime);
 			if (isMouseDowning && duration > 0.2) {

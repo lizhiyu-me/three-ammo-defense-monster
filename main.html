@@ -26,7 +26,7 @@
 			font-size: 80%
 		}
 
-		#blocker {
+		#blocker #gameOver{
 			position: absolute;
 			width: 100%;
 			height: 100%;
@@ -34,6 +34,11 @@
 			padding-top: 10em;
 			color: #FFF;
 			text-shadow: 1px 1px 20px #000
+		}
+		#scoreBar{
+			position: fixed;
+			top:0;
+			text-align:"center";
 		}
 
 		[hidden] {
@@ -64,23 +69,32 @@
 
 <body>
 	<div id="message" hidden>
-		Mouse and W, A, S, D = move<br />
+		Mouse and A, D = move<br />
 		CLICK = shoot balls<br />
 		Press ESC to pause
 	</div>
 	<div id="errorMessage" hidden>
 		<b>Mouse move is disabled: your browser doesn't support the Pointer Lock API.</b><br />
-		Use W, A, S, D keys to move<br />
+		Use A, D keys to move<br />
 		CLICK = shoot balls
 	</div>
 	<div id="blocker">
-		<span style="font-size:250%">Click to play</span>
+		<span style="font-size:300%">Click To Play</span>
 		<br /><br />
-		Mouse and W, D = move<br />
+		Mouse and A, D = move<br />
 		CLICK = shoot balls<br />
 		Press ESC to pause
 	</div>
+	<div id="gameOver" hidden>
+		<div >
+			<span>Your Score:</span>
+			<span id="score"></span>
+		</div>
+		<br /><br />
+		<span style="font-size:300%">Click To Start</span>
+	</div>
 	<div id="container">Loading...</div>
+	<div id="scoreBar">00.00</div>
 	<script src="js/three.js"></script>
 	<script src="js/ammo.js"></script>
 	<script src="js/detector.js"></script>
