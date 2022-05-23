@@ -318,6 +318,7 @@ class MouseShooter {
 
 		this.pos.copy(this.raycaster.ray.direction);
 		this.pos.add(this.raycaster.ray.origin);
+		this.pos.setZ(this.pos.z-20);
 
 		const ball = this.factory.createSphere(this.radius, this.mass, this.pos, this.quat, this.ballMaterial);
 		ball.castShadow = true;
@@ -430,7 +431,6 @@ window.onload = () => {
 		function dropBrick(material) {
 			if (!controls.enabled) return;
 			let _x = 26 * Math.random() * (Math.random() > .5 ? -1 : 1);
-			// let _z = -50 * Math.random();
 			let _pos = new THREE.Vector3(_x, 15, -30);
 			factory.createParalellepiped(6, 6, 6, 30, _pos, new THREE.Quaternion(0, 0, 0, 1), material);
 		}
