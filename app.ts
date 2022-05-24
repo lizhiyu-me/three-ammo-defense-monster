@@ -10,7 +10,8 @@ class Engine {
 
 	private clock = new THREE.Clock();
 	private physicsWorld: Ammo.btDiscreteDynamicsWorld;
-	private rigidBodies = new Array<THREE.Object3D>();
+	private rigidBodies: THREE.Object3D[] = [];
+	rigidBodies_slope: THREE.Object3D[] = [];
 
 	constructor(element: HTMLElement, clearColor: number) {
 		this.renderer = new THREE.WebGLRenderer();
@@ -31,11 +32,11 @@ class Engine {
 		this.physicsWorld.setGravity(new Ammo.btVector3(0, -16, 0));
 	}
 
-	public enableShadows(): void {
+	enableShadows(): void {
 		this.renderer.shadowMap.enabled = true;
 	}
 
-	public setCamera(camera: THREE.PerspectiveCamera): void {
+	setCamera(camera: THREE.PerspectiveCamera): void {
 		this.camera = camera;
 		window.addEventListener('resize', () => {
 			this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -44,20 +45,20 @@ class Engine {
 		}, false);
 	}
 
-	public getCamera(): THREE.PerspectiveCamera {
+	getCamera(): THREE.PerspectiveCamera {
 		return this.camera;
 	}
 
-	public addLight(light: THREE.Light): void {
+	addLight(light: THREE.Light): void {
 		this.light = light;
 		this.scene.add(this.light);
 	}
 
-	public addObject(object: THREE.Object3D): void {
+	addObject(object: THREE.Object3D): void {
 		this.scene.add(object);
 	}
 
-	public addPhysicsObject(object: THREE.Object3D, body: Ammo.btRigidBody, mass: number): void {
+	addPhysicsObject(object: THREE.Object3D, body: Ammo.btRigidBody, mass: number): void {
 		object.userData.physicsBody = body;
 		if (mass > 0) {
 			this.rigidBodies.push(object);
@@ -78,9 +79,9 @@ class Engine {
 		const len = this.rigidBodies.length;
 		for (let i = 0; i < len; i++) {
 			var objThree = this.rigidBodies[i];
-			var ms = objThree.userData.physicsBody.getMotionState();
-			if (ms) {
-				ms.getWorldTransform(this.tempTransform);
+			var motionState = objThree.userData.physicsBody.getMotionState();
+			if (motionState) {
+				motionState.getWorldTransform(this.tempTransform);
 
 				let p = this.tempTransform.getOrigin();
 				objThree.position.set(p.x(), p.y(), p.z());
@@ -91,11 +92,10 @@ class Engine {
 		}
 	}
 
-	public update(controls, edgeZ): number {
-
-		const len = this.rigidBodies.length;
+	private checkGameOver(controls, edgeZ): boolean {
+		const len = this.rigidBodies_slope.length;
 		for (let i = 0; i < len; i++) {
-			var objThree = this.rigidBodies[i];
+			var objThree = this.rigidBodies_slope[i];
 			if (objThree.position.z > edgeZ) {
 				controls.enabled = false;
 				const message = document.getElementById('message');
@@ -105,13 +105,16 @@ class Engine {
 				message.style.display = 'none';
 				gameOver.style.display = 'block';
 				lockPointer(controls);
-				return;
+				return true;
 			}
 		}
+	}
 
+	update(controls, edgeZ): number {
+		const isGameOver = this.checkGameOver(controls, edgeZ);
+		if (isGameOver) return;
 		const deltaTime = this.clock.getDelta();
 		controls.enabled && this.updatePhysics(deltaTime);
-		// if(this.rigidBodies)gameOverChecker.call(this.rigidBodies);
 		this.renderer.render(this.scene, this.camera);
 		return deltaTime;
 	}
@@ -143,7 +146,7 @@ class ShapeFactory {
 		this.engine.addPhysicsObject(threeObject, body, mass);
 	}
 
-	public createParalellepiped(sx: number, sy: number, sz: number, mass: number, pos: THREE.Vector3, quat: THREE.Quaternion, material: THREE.Material): THREE.Mesh {
+	createParalellepiped(sx: number, sy: number, sz: number, mass: number, pos: THREE.Vector3, quat: THREE.Quaternion, material: THREE.Material): THREE.Mesh {
 		let threeObject = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz, 1, 1, 1), material);
 		threeObject.position.copy(pos);
 		threeObject.quaternion.copy(quat);
@@ -154,7 +157,7 @@ class ShapeFactory {
 		return threeObject;
 	}
 
-	public createSphere(radius: number, mass: number, pos: THREE.Vector3, quat: THREE.Quaternion, material: THREE.Material): THREE.Mesh {
+	createSphere(radius: number, mass: number, pos: THREE.Vector3, quat: THREE.Quaternion, material: THREE.Material): THREE.Mesh {
 		var threeObject = new THREE.Mesh(new THREE.SphereGeometry(radius, 18, 16), material);
 		threeObject.position.copy(pos);
 		threeObject.quaternion.copy(quat);
@@ -181,7 +184,7 @@ class CameraMoveControls {
 
 	private static PI_2 = Math.PI / 2;
 
-	public constructor(camera: THREE.Camera) {
+	constructor(camera: THREE.Camera) {
 		camera.rotation.set(0, 0, 0);
 		this.pitchObject = new THREE.Object3D();
 		this.pitchObject.add(camera);
@@ -193,11 +196,11 @@ class CameraMoveControls {
 		this.initEventListeners();
 	}
 
-	public getObject() {
+	getObject() {
 		return this.yawObject;
 	}
 
-	public setPitchRotationX(x: number): void {
+	setPitchRotationX(x: number): void {
 		this.pitchObject.rotation.x = x;
 	}
 
@@ -231,7 +234,7 @@ class CameraMoveControls {
 		}
 	}
 
-	public update(delta: number): void {
+	update(delta: number): void {
 		if (this.enabled === false) return;
 
 		const factor = 10.0 * delta;
@@ -251,7 +254,7 @@ function lockPointer(controls: CameraMoveControls) {
 	const message = document.getElementById('message');
 	const blocker = document.getElementById('blocker');
 	const gameOver = document.getElementById('gameOver');
-	const pointerlockerror = (event) => {
+	const pointerlockerror = () => {
 		document.addEventListener('keydown', (event) => {
 			if (event.keyCode == 27) { // ESC
 				controls.enabled = false;
@@ -308,7 +311,7 @@ function lockPointer(controls: CameraMoveControls) {
 			_body.requestPointerLock();
 		}
 	} else {
-		pointerlockerror(null);
+		pointerlockerror();
 	}
 }
 
@@ -326,14 +329,17 @@ class MouseShooter {
 	private quat = new THREE.Quaternion(0, 0, 0, 1);
 	private ballMaterial = new THREE.MeshPhongMaterial({ color: 0x202020 });
 
-	constructor(radius: number, mass: number, factory: ShapeFactory, camera: THREE.PerspectiveCamera) {
+	private engine;
+
+	constructor(radius: number, mass: number, factory: ShapeFactory, camera: THREE.PerspectiveCamera, engine: Engine) {
 		this.radius = radius;
 		this.mass = mass;
 		this.factory = factory;
 		this.camera = camera;
+		this.engine = engine;
 	}
 
-	public shoot() {
+	shoot() {
 		this.raycaster.setFromCamera(this.screenCenter, this.camera);
 
 		this.pos.copy(this.raycaster.ray.direction);
@@ -341,6 +347,7 @@ class MouseShooter {
 		this.pos.setZ(this.pos.z - 10);
 
 		const ball = this.factory.createSphere(this.radius, this.mass, this.pos, this.quat, this.ballMaterial);
+		this.engine.rigidBodies_slope.push(ball);
 		ball.castShadow = true;
 		ball.receiveShadow = true;
 
@@ -403,12 +410,8 @@ window.onload = () => {
 			const ground = factory.createParalellepiped(100, 1, groundScaleZ, 0, new THREE.Vector3(0, -0.5, 0), new THREE.Quaternion(groundRotationX, 0, 0, 1), new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
 			const wallLeft = factory.createParalellepiped(2, 50, 90, 0, new THREE.Vector3(-51, 0, 0), new THREE.Quaternion(0, 0, 0, 1), new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
 			const wallRight = factory.createParalellepiped(2, 50, 90, 0, new THREE.Vector3(51, 0, 0), new THREE.Quaternion(0, 0, 0, 1), new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
-			ground.castShadow =
-				ground.receiveShadow =
-				wallLeft.castShadow = true;
-			wallLeft.receiveShadow =
-				wallRight.castShadow =
-				wallRight.receiveShadow = true;
+			ground.castShadow = ground.receiveShadow = wallLeft.castShadow = true;
+			wallLeft.receiveShadow = wallRight.castShadow = wallRight.receiveShadow = true;
 			textureLoader.load("img/cement.jpg", (texture) => {
 				texture.wrapS = THREE.RepeatWrapping;
 				texture.wrapT = THREE.RepeatWrapping;
@@ -422,8 +425,6 @@ window.onload = () => {
 				//@ts-ignore
 				wallRight.material.map = texture;
 				wallRight.material.needsUpdate = true;
-
-
 			});
 			engine.addObject(ground);
 			engine.addObject(wallLeft);
@@ -470,7 +471,7 @@ window.onload = () => {
 		engine.addObject(controls.getObject());
 
 		// MOUSE SHOOTER
-		const mouseShooter = new MouseShooter(1.2, 10, factory, engine.getCamera());
+		const mouseShooter = new MouseShooter(1.2, 10, factory, engine.getCamera(), engine);
 
 		// HANDLE MOUSE CLICK
 		var isMouseDowning = false;
@@ -497,7 +498,7 @@ window.onload = () => {
 				beginTime = new Date().getTime();
 			} else {
 				let _currentTime = new Date().getTime();
-				totalTime += (_currentTime-beginTime);
+				totalTime += (_currentTime - beginTime);
 				document.getElementById('scoreBar').innerHTML = Math.floor(totalTime / 1000) + "." + totalTime % 1000;
 				beginTime = _currentTime;
 			}
