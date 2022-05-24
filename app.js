@@ -6,6 +6,7 @@ var Engine = /** @class */ (function () {
         this.clock = new THREE.Clock();
         this.rigidBodies = [];
         this.rigidBodies_slope = [];
+        this.isGameOver = false;
         this.tempTransform = new Ammo.btTransform();
         this.renderer = new THREE.WebGLRenderer();
         this.renderer.setClearColor(clearColor);
@@ -82,13 +83,15 @@ var Engine = /** @class */ (function () {
                 message.style.display = 'none';
                 gameOver.style.display = 'block';
                 lockPointer(controls);
+                document.getElementById('score').innerHTML = document.getElementById('scoreBar').innerHTML;
+                this.isGameOver = true;
                 return true;
             }
         }
     };
     Engine.prototype.update = function (controls, edgeZ) {
-        var isGameOver = this.checkGameOver(controls, edgeZ);
-        if (isGameOver)
+        this.isGameOver = this.checkGameOver(controls, edgeZ);
+        if (this.isGameOver)
             return;
         var deltaTime = this.clock.getDelta();
         controls.enabled && this.updatePhysics(deltaTime);
@@ -268,7 +271,7 @@ function lockPointer(controls) {
 }
 //-------------------------------------------------------------------
 var MouseShooter = /** @class */ (function () {
-    function MouseShooter(radius, mass, factory, camera, engine) {
+    function MouseShooter(radius, mass, factory, camera) {
         this.pos = new THREE.Vector3();
         this.screenCenter = new THREE.Vector2(0, 0);
         this.raycaster = new THREE.Raycaster();
@@ -278,7 +281,6 @@ var MouseShooter = /** @class */ (function () {
         this.mass = mass;
         this.factory = factory;
         this.camera = camera;
-        this.engine = engine;
     }
     MouseShooter.prototype.shoot = function () {
         this.raycaster.setFromCamera(this.screenCenter, this.camera);
@@ -401,7 +403,7 @@ window.onload = function () {
         controls_1.setPitchRotationX(0);
         engine_1.addObject(controls_1.getObject());
         // MOUSE SHOOTER
-        var mouseShooter_1 = new MouseShooter(1.2, 10, factory_1, engine_1.getCamera(), engine_1);
+        var mouseShooter_1 = new MouseShooter(1.2, 10, factory_1, engine_1.getCamera());
         // HANDLE MOUSE CLICK
         var isMouseDowning = false;
         window.addEventListener('mousedown', function (event) {
@@ -416,12 +418,7 @@ window.onload = function () {
         window.addEventListener('mouseup', function (event) {
             isMouseDowning = false;
         }, false);
-        var edgeZ = Math.cos(groundRotationX) * groundScaleZ / 2;
-        // START THE ENGINE
-        var totalTime = 0;
-        var duration = 0;
-        var beginTime = 0;
-        function animate() {
+        function recordTotalTime() {
             if (beginTime == 0) {
                 beginTime = new Date().getTime();
             }
@@ -431,6 +428,15 @@ window.onload = function () {
                 document.getElementById('scoreBar').innerHTML = Math.floor(totalTime / 1000) + "." + totalTime % 1000;
                 beginTime = _currentTime;
             }
+        }
+        var edgeZ = Math.cos(groundRotationX) * groundScaleZ / 2;
+        // START THE ENGINE
+        var totalTime = 0;
+        var duration = 0;
+        var beginTime = 0;
+        function animate() {
+            if (controls_1.enabled && !engine_1.isGameOver)
+                recordTotalTime();
             requestAnimationFrame(animate);
             var deltaTime = engine_1.update(controls_1, edgeZ);
             duration += deltaTime;

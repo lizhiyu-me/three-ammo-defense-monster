@@ -12,6 +12,7 @@ class Engine {
 	private physicsWorld: Ammo.btDiscreteDynamicsWorld;
 	private rigidBodies: THREE.Object3D[] = [];
 	rigidBodies_slope: THREE.Object3D[] = [];
+	isGameOver: boolean = false;
 
 	constructor(element: HTMLElement, clearColor: number) {
 		this.renderer = new THREE.WebGLRenderer();
@@ -105,14 +106,16 @@ class Engine {
 				message.style.display = 'none';
 				gameOver.style.display = 'block';
 				lockPointer(controls);
+				document.getElementById('score').innerHTML = document.getElementById('scoreBar').innerHTML;
+				this.isGameOver = true;
 				return true;
 			}
 		}
 	}
 
 	update(controls, edgeZ): number {
-		const isGameOver = this.checkGameOver(controls, edgeZ);
-		if (isGameOver) return;
+		this.isGameOver = this.checkGameOver(controls, edgeZ);
+		if (this.isGameOver) return;
 		const deltaTime = this.clock.getDelta();
 		controls.enabled && this.updatePhysics(deltaTime);
 		this.renderer.render(this.scene, this.camera);
@@ -329,14 +332,12 @@ class MouseShooter {
 	private quat = new THREE.Quaternion(0, 0, 0, 1);
 	private ballMaterial = new THREE.MeshPhongMaterial({ color: 0x202020 });
 
-	private engine;
 
-	constructor(radius: number, mass: number, factory: ShapeFactory, camera: THREE.PerspectiveCamera, engine: Engine) {
+	constructor(radius: number, mass: number, factory: ShapeFactory, camera: THREE.PerspectiveCamera) {
 		this.radius = radius;
 		this.mass = mass;
 		this.factory = factory;
 		this.camera = camera;
-		this.engine = engine;
 	}
 
 	shoot() {
@@ -472,7 +473,7 @@ window.onload = () => {
 		engine.addObject(controls.getObject());
 
 		// MOUSE SHOOTER
-		const mouseShooter = new MouseShooter(1.2, 10, factory, engine.getCamera(), engine);
+		const mouseShooter = new MouseShooter(1.2, 10, factory, engine.getCamera());
 
 		// HANDLE MOUSE CLICK
 		var isMouseDowning = false;
@@ -489,12 +490,7 @@ window.onload = () => {
 			isMouseDowning = false;
 		}, false);
 
-		var edgeZ = Math.cos(groundRotationX) * groundScaleZ / 2;
-		// START THE ENGINE
-		var totalTime = 0;
-		var duration = 0;
-		var beginTime = 0;
-		function animate() {
+		function recordTotalTime() {
 			if (beginTime == 0) {
 				beginTime = new Date().getTime();
 			} else {
@@ -503,6 +499,15 @@ window.onload = () => {
 				document.getElementById('scoreBar').innerHTML = Math.floor(totalTime / 1000) + "." + totalTime % 1000;
 				beginTime = _currentTime;
 			}
+		}
+
+		var edgeZ = Math.cos(groundRotationX) * groundScaleZ / 2;
+		// START THE ENGINE
+		var totalTime = 0;
+		var duration = 0;
+		var beginTime = 0;
+		function animate() {
+			if (controls.enabled && !engine.isGameOver) recordTotalTime();
 			requestAnimationFrame(animate);
 			const deltaTime = engine.update(controls, edgeZ);
 			duration += deltaTime;
