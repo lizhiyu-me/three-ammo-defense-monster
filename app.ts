@@ -347,7 +347,6 @@ class MouseShooter {
 		this.pos.setZ(this.pos.z - 10);
 
 		const ball = this.factory.createSphere(this.radius, this.mass, this.pos, this.quat, this.ballMaterial);
-		this.engine.rigidBodies_slope.push(ball);
 		ball.castShadow = true;
 		ball.receiveShadow = true;
 
@@ -453,14 +452,16 @@ window.onload = () => {
 			if (!controls.enabled) return;
 			let _x = 26 * Math.random() * (Math.random() > .5 ? -1 : 1);
 			let _pos = new THREE.Vector3(_x, 15, -30);
-			factory.createParalellepiped(6, 6, 6, 30, _pos, new THREE.Quaternion(0, 0, 0, 1), material);
+			let threeObject = factory.createParalellepiped(6, 6, 6, 30, _pos, new THREE.Quaternion(0, 0, 0, 1), material);
+			engine.rigidBodies_slope.push(threeObject);
 		}
 		function dropSephere(material) {
 			if (!controls.enabled) return;
 			let _x = 50 * Math.random() * (Math.random() > .5 ? -1 : 1);
 			let _z = -50 * Math.random();
 			let _pos = new THREE.Vector3(_x, 15, _z);
-			factory.createSphere(10, 60, _pos, new THREE.Quaternion(0, 0, 0, 1), material);
+			let threeObject = factory.createSphere(10, 60, _pos, new THREE.Quaternion(0, 0, 0, 1), material);
+			engine.rigidBodies_slope.push(threeObject);
 		}
 
 		// CONTROLS
@@ -488,7 +489,7 @@ window.onload = () => {
 			isMouseDowning = false;
 		}, false);
 
-		var edgeZ = Math.cos(groundRotationX) * groundScaleZ;
+		var edgeZ = Math.cos(groundRotationX) * groundScaleZ / 2;
 		// START THE ENGINE
 		var totalTime = 0;
 		var duration = 0;

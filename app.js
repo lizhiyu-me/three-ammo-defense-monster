@@ -4,7 +4,8 @@
 var Engine = /** @class */ (function () {
     function Engine(element, clearColor) {
         this.clock = new THREE.Clock();
-        this.rigidBodies = new Array();
+        this.rigidBodies = [];
+        this.rigidBodies_slope = [];
         this.tempTransform = new Ammo.btTransform();
         this.renderer = new THREE.WebGLRenderer();
         this.renderer.setClearColor(clearColor);
@@ -58,9 +59,9 @@ var Engine = /** @class */ (function () {
         var len = this.rigidBodies.length;
         for (var i = 0; i < len; i++) {
             var objThree = this.rigidBodies[i];
-            var ms = objThree.userData.physicsBody.getMotionState();
-            if (ms) {
-                ms.getWorldTransform(this.tempTransform);
+            var motionState = objThree.userData.physicsBody.getMotionState();
+            if (motionState) {
+                motionState.getWorldTransform(this.tempTransform);
                 var p = this.tempTransform.getOrigin();
                 objThree.position.set(p.x(), p.y(), p.z());
                 var q = this.tempTransform.getRotation();
@@ -68,10 +69,10 @@ var Engine = /** @class */ (function () {
             }
         }
     };
-    Engine.prototype.update = function (controls, edgeZ) {
-        var len = this.rigidBodies.length;
+    Engine.prototype.checkGameOver = function (controls, edgeZ) {
+        var len = this.rigidBodies_slope.length;
         for (var i = 0; i < len; i++) {
-            var objThree = this.rigidBodies[i];
+            var objThree = this.rigidBodies_slope[i];
             if (objThree.position.z > edgeZ) {
                 controls.enabled = false;
                 var message = document.getElementById('message');
@@ -81,12 +82,16 @@ var Engine = /** @class */ (function () {
                 message.style.display = 'none';
                 gameOver.style.display = 'block';
                 lockPointer(controls);
-                return;
+                return true;
             }
         }
+    };
+    Engine.prototype.update = function (controls, edgeZ) {
+        var isGameOver = this.checkGameOver(controls, edgeZ);
+        if (isGameOver)
+            return;
         var deltaTime = this.clock.getDelta();
         controls.enabled && this.updatePhysics(deltaTime);
-        // if(this.rigidBodies)gameOverChecker.call(this.rigidBodies);
         this.renderer.render(this.scene, this.camera);
         return deltaTime;
     };
@@ -199,7 +204,7 @@ function lockPointer(controls) {
     var message = document.getElementById('message');
     var blocker = document.getElementById('blocker');
     var gameOver = document.getElementById('gameOver');
-    var pointerlockerror = function (event) {
+    var pointerlockerror = function () {
         document.addEventListener('keydown', function (event) {
             if (event.keyCode == 27) { // ESC
                 controls.enabled = false;
@@ -258,12 +263,12 @@ function lockPointer(controls) {
         }
     }
     else {
-        pointerlockerror(null);
+        pointerlockerror();
     }
 }
 //-------------------------------------------------------------------
 var MouseShooter = /** @class */ (function () {
-    function MouseShooter(radius, mass, factory, camera) {
+    function MouseShooter(radius, mass, factory, camera, engine) {
         this.pos = new THREE.Vector3();
         this.screenCenter = new THREE.Vector2(0, 0);
         this.raycaster = new THREE.Raycaster();
@@ -273,6 +278,7 @@ var MouseShooter = /** @class */ (function () {
         this.mass = mass;
         this.factory = factory;
         this.camera = camera;
+        this.engine = engine;
     }
     MouseShooter.prototype.shoot = function () {
         this.raycaster.setFromCamera(this.screenCenter, this.camera);
@@ -334,12 +340,8 @@ window.onload = function () {
             var ground_1 = factory_1.createParalellepiped(100, 1, groundScaleZ, 0, new THREE.Vector3(0, -0.5, 0), new THREE.Quaternion(groundRotationX, 0, 0, 1), new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
             var wallLeft_1 = factory_1.createParalellepiped(2, 50, 90, 0, new THREE.Vector3(-51, 0, 0), new THREE.Quaternion(0, 0, 0, 1), new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
             var wallRight_1 = factory_1.createParalellepiped(2, 50, 90, 0, new THREE.Vector3(51, 0, 0), new THREE.Quaternion(0, 0, 0, 1), new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
-            ground_1.castShadow =
-                ground_1.receiveShadow =
-                    wallLeft_1.castShadow = true;
-            wallLeft_1.receiveShadow =
-                wallRight_1.castShadow =
-                    wallRight_1.receiveShadow = true;
+            ground_1.castShadow = ground_1.receiveShadow = wallLeft_1.castShadow = true;
+            wallLeft_1.receiveShadow = wallRight_1.castShadow = wallRight_1.receiveShadow = true;
             textureLoader.load("img/cement.jpg", function (texture) {
                 texture.wrapS = THREE.RepeatWrapping;
                 texture.wrapT = THREE.RepeatWrapping;
@@ -380,7 +382,8 @@ window.onload = function () {
                 return;
             var _x = 26 * Math.random() * (Math.random() > .5 ? -1 : 1);
             var _pos = new THREE.Vector3(_x, 15, -30);
-            factory_1.createParalellepiped(6, 6, 6, 30, _pos, new THREE.Quaternion(0, 0, 0, 1), material);
+            var threeObject = factory_1.createParalellepiped(6, 6, 6, 30, _pos, new THREE.Quaternion(0, 0, 0, 1), material);
+            engine_1.rigidBodies_slope.push(threeObject);
         }
         function dropSephere(material) {
             if (!controls_1.enabled)
@@ -388,7 +391,8 @@ window.onload = function () {
             var _x = 50 * Math.random() * (Math.random() > .5 ? -1 : 1);
             var _z = -50 * Math.random();
             var _pos = new THREE.Vector3(_x, 15, _z);
-            factory_1.createSphere(10, 60, _pos, new THREE.Quaternion(0, 0, 0, 1), material);
+            var threeObject = factory_1.createSphere(10, 60, _pos, new THREE.Quaternion(0, 0, 0, 1), material);
+            engine_1.rigidBodies_slope.push(threeObject);
         }
         // CONTROLS
         var controls_1 = new CameraMoveControls(engine_1.getCamera());
@@ -397,7 +401,7 @@ window.onload = function () {
         controls_1.setPitchRotationX(0);
         engine_1.addObject(controls_1.getObject());
         // MOUSE SHOOTER
-        var mouseShooter_1 = new MouseShooter(1.2, 10, factory_1, engine_1.getCamera());
+        var mouseShooter_1 = new MouseShooter(1.2, 10, factory_1, engine_1.getCamera(), engine_1);
         // HANDLE MOUSE CLICK
         var isMouseDowning = false;
         window.addEventListener('mousedown', function (event) {
@@ -412,7 +416,7 @@ window.onload = function () {
         window.addEventListener('mouseup', function (event) {
             isMouseDowning = false;
         }, false);
-        var edgeZ = Math.cos(groundRotationX) * groundScaleZ;
+        var edgeZ = Math.cos(groundRotationX) * groundScaleZ / 2;
         // START THE ENGINE
         var totalTime = 0;
         var duration = 0;
