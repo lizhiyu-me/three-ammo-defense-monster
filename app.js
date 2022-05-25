@@ -307,6 +307,10 @@ window.onload = function () {
     else {
         var engine_1 = new Engine(elem, 0xBFD1E5);
         engine_1.enableShadows();
+        var factory_1 = new ShapeFactory(engine_1);
+        var textureLoader = new THREE.TextureLoader();
+        var groundScaleZ = 100;
+        var groundRotationX = 0.15;
         // CAMERA
         {
             var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.2, 1000);
@@ -333,10 +337,6 @@ window.onload = function () {
             var ambientLight = new THREE.AmbientLight(0x606060);
             engine_1.addLight(ambientLight);
         }
-        var factory_1 = new ShapeFactory(engine_1);
-        var textureLoader = new THREE.TextureLoader();
-        var groundScaleZ = 100;
-        var groundRotationX = 0.15;
         // GROUND
         {
             var ground_1 = factory_1.createParalellepiped(100, 1, groundScaleZ, 0, new THREE.Vector3(0, -0.5, 0), new THREE.Quaternion(groundRotationX, 0, 0, 1), new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
@@ -369,16 +369,6 @@ window.onload = function () {
             _material_1.map = texture;
             _material_1.needsUpdate = true;
         });
-        var _dropCount_1 = 0;
-        setInterval(function () {
-            _dropCount_1++;
-            if (_dropCount_1 % 5) {
-                dropBrick(_material_1);
-            }
-            else {
-                dropSephere(_material_1);
-            }
-        }, 2000);
         function dropBrick(material) {
             if (!controls_1.enabled)
                 return;
@@ -429,11 +419,23 @@ window.onload = function () {
                 beginTime = _currentTime;
             }
         }
+        function beginDropSlopObject() {
+            var _dropCount = 0;
+            setInterval(function () {
+                _dropCount++;
+                if (_dropCount % 5) {
+                    dropBrick(_material_1);
+                }
+                else {
+                    dropSephere(_material_1);
+                }
+            }, 2000);
+        }
         var edgeZ = Math.cos(groundRotationX) * groundScaleZ / 2;
-        // START THE ENGINE
         var totalTime = 0;
         var duration = 0;
         var beginTime = 0;
+        // START THE ENGINE
         function animate() {
             if (controls_1.enabled && !engine_1.isGameOver)
                 recordTotalTime();
@@ -447,5 +449,7 @@ window.onload = function () {
             }
         }
         animate();
+        //GENERATE SLOPE OBJECT
+        beginDropSlopObject();
     }
 };

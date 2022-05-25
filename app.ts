@@ -369,6 +369,10 @@ window.onload = () => {
 	} else {
 		const engine = new Engine(elem, 0xBFD1E5);
 		engine.enableShadows();
+		const factory = new ShapeFactory(engine);
+		const textureLoader = new THREE.TextureLoader();
+		const groundScaleZ = 100;
+		const groundRotationX = 0.15;
 
 		// CAMERA
 		{
@@ -399,12 +403,6 @@ window.onload = () => {
 			engine.addLight(ambientLight);
 		}
 
-		const factory = new ShapeFactory(engine);
-
-		const textureLoader = new THREE.TextureLoader();
-
-		const groundScaleZ = 100;
-		const groundRotationX = 0.15;
 		// GROUND
 		{
 			const ground = factory.createParalellepiped(100, 1, groundScaleZ, 0, new THREE.Vector3(0, -0.5, 0), new THREE.Quaternion(groundRotationX, 0, 0, 1), new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
@@ -438,16 +436,6 @@ window.onload = () => {
 			_material.map = texture;
 			_material.needsUpdate = true;
 		});
-
-		let _dropCount = 0;
-		setInterval(() => {
-			_dropCount++;
-			if (_dropCount % 5) {
-				dropBrick(_material);
-			} else {
-				dropSephere(_material);
-			}
-		}, 2000)
 
 		function dropBrick(material) {
 			if (!controls.enabled) return;
@@ -501,11 +489,23 @@ window.onload = () => {
 			}
 		}
 
+		function beginDropSlopObject() {
+			let _dropCount = 0;
+			setInterval(() => {
+				_dropCount++;
+				if (_dropCount % 5) {
+					dropBrick(_material);
+				} else {
+					dropSephere(_material);
+				}
+			}, 2000)
+		}
+
 		var edgeZ = Math.cos(groundRotationX) * groundScaleZ / 2;
-		// START THE ENGINE
 		var totalTime = 0;
 		var duration = 0;
 		var beginTime = 0;
+		// START THE ENGINE
 		function animate() {
 			if (controls.enabled && !engine.isGameOver) recordTotalTime();
 			requestAnimationFrame(animate);
@@ -518,5 +518,7 @@ window.onload = () => {
 			}
 		}
 		animate();
+		//GENERATE SLOPE OBJECT
+		beginDropSlopObject();
 	}
 };
